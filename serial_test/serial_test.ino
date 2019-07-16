@@ -35,7 +35,7 @@ float angle;
 // 当前位置向量
 float vec_x = 0.0, vec_y = 0.0;
 // 当前用户位置
-float pos_x = total_height, pos_y = 0;
+float pos_x = total_height, pos_y = total_width/2+10;
 
 typedef struct{
   uint16_t id;
@@ -58,40 +58,29 @@ Adafruit_PWMServoDriver pwms[SERVO_PANEL_COUNT] = {
         };
 
 void setup() {
-  Serial.begin(9600); 
-  establishContact();
+  Serial.begin(9600);
   
-  init_EM(); // 初始化眼球阵列（位置和角度）
-  init_servo_panel(); // 初始化舵机控制板
-  init_SM(); // 初始化板载ID与板内序号信息
-  servoSweep(); // 让眼球位于90度位置
+  // 初始化眼球阵列（位置和角度）
+  init_EM();
+
+  // 初始化舵机控制板
+  init_servo_panel();
+
+  // 初始化板载ID与板内序号信息
+  init_SM();
 }
 
 void loop() {
-  if (Serial.available()) {
-    pos_y = Serial.read();
-    if(pos_y != 'A'){
-      servoSweep();
-      Serial.println("B");  //this is the flag: I need data.
-    }
-  }else {
-    Serial.println("B");
-    delay(50); 
+  pos_y = pos_y - 30;
+  if(pos_y >= -273/2){
+    servoSweep();
   }
 }
+
 
 /////////////////////////////////////////////
 // 帮助函数
 /////////////////////////////////////////////
-/**
- * 与Processing建立连接
- */
-void establishContact() {
-  while(Serial.available() <= 0){
-      Serial.println("A"); // this is the flag for first connection
-      delay(300);  
-  }
-}
 /**
  * 初始化眼球阵列的角度（脉冲宽度）
  */
@@ -134,7 +123,7 @@ float getDirX(uint16_t x, uint16_t y){
  */
 float getDirY(uint16_t x, uint16_t y){
 //  return pos_y - EM[x][y].y;
-  return pos_y + EYE_MATRIX_WIDTH/2 - cell_width*y;
+  return pos_y - (-EYE_MATRIX_WIDTH/2 + cell_width*y);
 }
 
 /**

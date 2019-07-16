@@ -6,8 +6,8 @@ KinectPV2 kinect;
 FaceData [] faceData;
 boolean foundUsers = false;
 int locX = -1;
-int angle = 0;
-int lastAngle = 0;
+int pos = 0;
+int lastpos = 0;
 String val; // save the flag info
 boolean firstContact = false; // since we're doing serial handshaking, we need to check if we heard frim the arduino
 int threshold = 15;
@@ -70,14 +70,14 @@ void serialEvent(Serial myPort){
        println(val);
        if(val.equals("B")) {
          if(locX != -1) { 
-            angle = int(locX/512.0*180);
-            if(Math.abs(angle - lastAngle) > threshold) {
-              println("Angel is "+angle);
-              myPort.write(angle);
-              lastAngle = angle;
+            pos = int(locX/512.0*273);
+            if(Math.abs(pos - lastpos) > threshold) {
+              println("Position is "+pos);
+              myPort.write(pos);
+              lastpos = pos;
             }
           }else{
-            myPort.write(lastAngle);
+            myPort.write(lastpos);
           }
        }
        
