@@ -10,7 +10,8 @@ int pos = 0;
 int lastpos = 0;
 String val; // save the flag info
 boolean firstContact = false; // since we're doing serial handshaking, we need to check if we heard frim the arduino
-int threshold = 15;
+int threshold = 3;
+String s_pos = "";
 
 void setup() {
   size(1024, 424);
@@ -67,18 +68,20 @@ void serialEvent(Serial myPort){
       }
     }
     else {
-       println(val);
        if(val.equals("B")) {
          if(locX != -1) { 
-            pos = int(locX/512.0*273);
+            pos = int((locX-20)/(490.0-20.0)*273);
+            s_pos = String.valueOf(pos);
             if(Math.abs(pos - lastpos) > threshold) {
-              println("Position is "+pos);
-              myPort.write(pos);
+              println("Sending $"+pos+"$");
+              myPort.write("$"+pos+"$");
               lastpos = pos;
             }
           }else{
             myPort.write(lastpos);
           }
+       }else{
+         println("Receive "+val);
        }
        
        myPort.write("A");

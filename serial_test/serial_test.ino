@@ -35,7 +35,7 @@ float angle;
 // 当前位置向量
 float vec_x = 0.0, vec_y = 0.0;
 // 当前用户位置
-float pos_x = total_height, pos_y = total_width/2+10;
+float pos_x = total_height, pos_y = -136.5;
 
 typedef struct{
   uint16_t id;
@@ -68,13 +68,14 @@ void setup() {
 
   // 初始化板载ID与板内序号信息
   init_SM();
+  servoSweep();
 }
 
 void loop() {
-  pos_y = pos_y - 30;
-  if(pos_y >= -273/2){
-    servoSweep();
-  }
+//  pos_y = pos_y + 10;
+//  if(pos_y <= 273/2+1){
+//    servoSweep();
+//  }
 }
 
 
@@ -107,7 +108,7 @@ void init_servo_panel(){
  * 计算给定向量与X轴的夹角，范围为[-90, 90]
  */
 float vector2angle(float x, float y){
-  return atan2f(x, y)*180*M_1_PI;
+  return 180 - atan2f(x, y)*180*M_1_PI;
 }
 
 /**
@@ -144,23 +145,36 @@ uint16_t angle2pulse(float angle){
  * 驱动所有舵机从from转动到to，参数为脉冲宽度
  */
 void servoSweep(){
-  for(uint16_t i=0; i<EYECOUNT_X; i++){
-    for(uint16_t j=0; j<EYECOUNT_Y; j++){
-      uint16_t pulse = angle2pulse(getAngle(i, j));
-      if(pulse > last_pulse[i][j]){
-        for(uint16_t pulselen=last_pulse[i][j]; pulselen<pulse; pulselen+=2){
-          pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
-        }
-      }else{
-        for(uint16_t pulselen=last_pulse[i][j]; pulselen>pulse; pulselen-=2){
-          pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
-        }
-      }
-      // 存储上一次脉冲
-      last_pulse[i][j] = pulse;
+//  for(uint16_t i=0; i<EYECOUNT_X; i++){
+//    for(uint16_t j=0; j<EYECOUNT_Y; j++){
+//      uint16_t pulse = angle2pulse(getAngle(i, j));
+//      if(pulse > last_pulse[i][j]){
+//        for(uint16_t pulselen=last_pulse[i][j]; pulselen<pulse; pulselen+=2){
+//          pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
+//        }
+//      }else{
+//        for(uint16_t pulselen=last_pulse[i][j]; pulselen>pulse; pulselen-=2){
+//          pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
+//        }
+//      }
+//      // 存储上一次脉冲
+//      last_pulse[i][j] = pulse;
+//    }
+//  }
+//  delay(1000);
+  Serial.println();
+  for(int i=EYECOUNT_X-1; i>=0; i--){
+    for(int j=0; j<EYECOUNT_Y; j++){
+      Serial.print('(');
+      Serial.print(i);
+      Serial.print(',');
+      Serial.print(j);
+      Serial.print("):");
+      Serial.print(angle2pulse(getAngle(i, j)));
+      Serial.print("  ");
     }
+    Serial.println();
   }
-  delay(1000);
   return;
 }
 

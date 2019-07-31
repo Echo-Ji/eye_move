@@ -36,6 +36,7 @@ float angle;
 float vec_x = 0.0, vec_y = 0.0;
 // 当前用户位置
 float pos_x = total_height, pos_y = 0;
+String inString = "";
 
 typedef struct{
   uint16_t id;
@@ -69,8 +70,22 @@ void setup() {
 
 void loop() {
   if (Serial.available()) {
-    pos_y = Serial.read();
-    if(pos_y != 'A'){
+    int a = Serial.read();
+    if(a != 'A' && a == '$'){
+       // 接受位置数据，read()每次只读一个字符，所以processing端将数据以String形式发送，
+       // arduino端再拼接为String转化为Int，注意数据String被$包围作为标识，如"$120$"
+       while(Serial.available()){
+        int inChar = Serial.read();
+        if (isDigit(inChar)) {
+          inString += (char)inChar; 
+        }
+        if (inChar == '$'){
+          pos_y = inString.toInt() - 136.5; //讲[0,273]映射到[-273/2,273/2]
+          Serial.println(inString);
+          inString = "";
+          break;
+        }
+       }
       servoSweep();
       Serial.println("B");  //this is the flag: I need data.
     }
@@ -115,10 +130,10 @@ void init_servo_panel(){
 }
 
 /**
- * 计算给定向量与X轴的夹角，范围为[-90, 90]
+ * 计算给定向量与X轴的夹角，范围为[0， 180]，y轴正方向为180度，y轴负方向为0度
  */
 float vector2angle(float x, float y){
-  return atan2f(x, y)*180*M_1_PI;
+  return 180 - atan2f(x, y)*180*M_1_PI;
 }
 
 /**
@@ -155,23 +170,44 @@ uint16_t angle2pulse(float angle){
  * 驱动所有舵机从from转动到to，参数为脉冲宽度
  */
 void servoSweep(){
-  for(uint16_t i=0; i<EYECOUNT_X; i++){
-    for(uint16_t j=0; j<EYECOUNT_Y; j++){
-      uint16_t pulse = angle2pulse(getAngle(i, j));
-      if(pulse > last_pulse[i][j]){
-        for(uint16_t pulselen=last_pulse[i][j]; pulselen<pulse; pulselen+=2){
-          pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
+  // 若用户在负半轴，则眼球阵右侧点（眼球[10，0]）引领追踪
+  if(pos_y < 0){
+    for(int i=EYECOUNT_X-1; i>=0; i--){
+      for(int j=0; j<EYECOUNT_Y; j++){
+        uint16_t pulse = angle2pulse(getAngle(i, j));
+        if(pulse > last_pulse[i][j]){
+          for(uint16_t pulselen=last_pulse[i][j]; pulselen<pulse; pulselen+=5){
+            pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
+          }
+        }else{
+          for(uint16_t pulselen=last_pulse[i][j]; pulselen>pulse; pulselen-=5){
+            pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
+          }
         }
-      }else{
-        for(uint16_t pulselen=last_pulse[i][j]; pulselen>pulse; pulselen-=2){
-          pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
-        }
+        // 存储上一次脉冲
+        last_pulse[i][j] = pulse;
       }
-      // 存储上一次脉冲
-      last_pulse[i][j] = pulse;
-    }
+    }  
+  }else { // 若用户在负半轴，则眼球阵右侧点（眼球[10，10]）引领追踪
+    for(int i=EYECOUNT_X-1; i>=0; i--){
+      for(int j=EYECOUNT_Y-1; j>=0; j--){
+        uint16_t pulse = angle2pulse(getAngle(i, j));
+        if(pulse > last_pulse[i][j]){
+          for(uint16_t pulselen=last_pulse[i][j]; pulselen<pulse; pulselen+=5){
+            pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
+          }
+        }else{
+          for(uint16_t pulselen=last_pulse[i][j]; pulselen>pulse; pulselen-=5){
+            pwms[SM[i][j].id].setPWM(SM[i][j].num, 0, pulselen);
+          }
+        }
+        // 存储上一次脉冲
+        last_pulse[i][j] = pulse;
+      }
+    }  
   }
-  delay(1000);
+  
+  delay(100);
   return;
 }
 
